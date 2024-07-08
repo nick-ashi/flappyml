@@ -27,5 +27,6 @@ What i need to give the NEAT module
 - pop size
     - arbitrary (it's just the number of birds we want to sacrifice for the greater good)
 - FITNESS FUNCTION
-    - 
+    - however far the bird gets aka dist
 - max generations
+    - what we give up at (maybe 40)
