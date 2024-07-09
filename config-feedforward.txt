@@ -1,14 +1,14 @@
 
 [NEAT]
 fitness_criterion     = max
-fitness_threshold     = 100 #what number do we want to get
-pop_size              = 100
+fitness_threshold     = 100 
+pop_size              = 15
 reset_on_extinction   = False 
 
 [DefaultGenome]
 # node activation options
-activation_default      = tanh #act func
-activation_mutate_rate  = 0.0 #% chance that a new pop will get a diff random activation function
+activation_default      = tanh 
+activation_mutate_rate  = 0.0 
 activation_options      = tanh
 
 # node aggregation options

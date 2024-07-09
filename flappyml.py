@@ -8,6 +8,7 @@ pygame.font.init()
 
 WIN_WIDTH = 500
 WIN_HEIGHT = 800
+gen = 0
 
 #loading images
 BIRD_IMGS = [pygame.transform.scale2x(pygame.image.load(os.path.join("images", "bird1.png"))), pygame.transform.scale2x(pygame.image.load(os.path.join("images", "bird2.png"))), pygame.transform.scale2x(pygame.image.load(os.path.join("images", "bird3.png")))]
@@ -87,7 +88,7 @@ class Bird:
 
 class Pipe:
     GAP = 200
-    VEL = 4
+    VEL = 10
 
     def __init__(self, x):
         self.x = x
@@ -131,7 +132,7 @@ class Pipe:
         return False
     
 class Base:
-    VEL = 4
+    VEL = 6
     WIDTH = BASE_IMG.get_width()
     IMG = BASE_IMG
 
@@ -156,25 +157,31 @@ class Base:
 
 
 
-def draw_window(win, bird, pipes, base, score):
+def draw_window(win, birds, pipes, base, score, gens):
     win.blit(BG_IMG, (0, 0))
     for pipe in pipes:
         pipe.draw(win)
 
-    text = STAT_FONT.render("Score: " + str(score), 1, (255, 255, 255))
-    win.blit(text, (WIN_WIDTH - 10 - text.get_width(), 10))
+    score_text = STAT_FONT.render("Score: " + str(score), 1, (255, 255, 255))
+    gen_text = STAT_FONT.render("Gen: " + str(gens), 1,  (255, 255, 255))
+    win.blit(score_text, (10, 10))
+    win.blit(gen_text, (10, 50))
 
     base.draw(win)
-    bird.draw(win)
+    for bird in birds:
+        bird.draw(win)
     pygame.display.update()
 
+#fitness_function
 def main(genomes, config):
+    global gen
+    gen += 1
     nets = [] #networks
     ge = [] #genomes
     birds = []
 
-    for g in genomes:
-        net = neat.nn.FeedForwardNetwork(g, config)
+    for _, g in genomes:
+        net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         birds.append(Bird(230, 350))
         g.fitness = 0
@@ -185,19 +192,36 @@ def main(genomes, config):
     pipes = [Pipe(700)]
     win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
     clock = pygame.time.Clock()
-    run = True
 
+    score = 0
+
+    run = True
     while run:
         clock.tick(30)
         # keep track of something the user does like click the mous
         for event in pygame.event.get(): 
             if event.type == pygame.QUIT:
                 run = False
+                pygame.quit()
+                quit()
+
 
         pipe_ind = 0
         if len(birds) > 0:
             if len(pipes) > 1 and birds[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
                 pipe_ind = 1
+        else:
+            run = False
+            break
+
+        for x, bird in enumerate(birds):
+            bird.move()
+            ge[x].fitness += 0.1
+
+            output = nets[x].activate((bird.y, abs(bird.y - pipes[pipe_ind].height), abs(bird.y - pipes[pipe_ind].bottom)))
+
+            if output[0] > 0.5:
+                bird.jump()
 
         #bird.move()
         rem = [] #removed pipes
@@ -229,23 +253,19 @@ def main(genomes, config):
             pipes.remove(r)
         
         for x, bird in enumerate(birds):
-            if bird.y + bird.img.get_height() > 730:
+            if bird.y + bird.img.get_height() > 730 or bird.y < 0:
                 birds.pop(x)
                 nets.pop(x)
                 ge.pop(x)
 
         base.move()
-        draw_window(win, bird, pipes, base, score)
+        draw_window(win, birds, pipes, base, score, gen)
     
-    pygame.quit()
-    quit()
-        
-main()
 
 def run(config_path):
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
 
-    p = neat.population(config)
+    p = neat.Population(config)
 
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
